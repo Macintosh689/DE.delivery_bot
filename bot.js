@@ -155,7 +155,6 @@ bot.on("text", async (ctx) => {
 
       await ctx.reply(
         `📦 Сумма заказа: ${ctx.session.amount} €\n` +
-          `👕 Количество вещей: ${count}\n` +
           `💶 Курс: ${rate.toFixed(2)} ₽/€\n` +
           `➡️ Итого: ${total.toLocaleString("ru-RU")} ₽\n\n` +
           note
@@ -181,7 +180,6 @@ bot.on("text", async (ctx) => {
   await bot.launch({ dropPendingUpdates: true });
   console.log("🚀 Бот запущен (polling, очищены все старые апдейты)");
 })();
-
 
 // Регистрация меню команд
 (async () => {
