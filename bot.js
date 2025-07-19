@@ -174,6 +174,15 @@ bot.on("text", async (ctx) => {
   console.log("🚀 Бот запущен (polling, очищены старые апдейты)");
 })();
 
+// === HTTP‑сервер, чтобы Render Web Service держал процесс живым ===
+const http = require("http");
+const PORT = process.env.PORT || 3000;
+http
+  .createServer((req, res) => res.writeHead(200).end("OK"))
+  .listen(PORT, () => {
+    console.log(`🌐 HTTP‑сервер запущен и слушает порт ${PORT}`);
+  });
+
 // === Меню команд ===
 (async () => {
   await bot.telegram.setMyCommands([
