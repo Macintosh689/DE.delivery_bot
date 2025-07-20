@@ -258,7 +258,8 @@ http
     { command: "info", description: "Условия заказа" },
     { command: "ask", description: "Задать вопрос" },
     { command: "help", description: "Помощь" },
-    { command: "ask", description: "Задать вопрос" },
+    { command: "faq", description: "Частые вопросы" },
+    { command: "welcome", description: "Приветствие" },
   ]);
 })();
 
