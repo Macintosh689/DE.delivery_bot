@@ -98,6 +98,10 @@ bot.start((ctx) => {
   );
 });
 
+bot.command("menu", async (ctx) => {
+  return ctx.reply("Выберите действие из меню 👇", mainMenu);
+});
+
 // === Кнопки ===
 bot.hears("📈 Курс евро", async (ctx) => {
   ctx.session = {};
@@ -217,7 +221,7 @@ bot.on("text", async (ctx) => {
   }
 
   // если ничто не активно
-  return mainMenu;
+  return ctx.reply("Выберите действие из меню 👇", mainMenu);
 });
 
 bot.command("faq", (ctx) =>
@@ -287,7 +291,9 @@ bot.command("calc", (ctx) => {
 (async () => {
   await bot.telegram.deleteWebhook();
   await bot.launch({ dropPendingUpdates: true });
-  await bot.telegram.setMyCommands([]);
+  await bot.telegram.setMyCommands([
+    { command: "menu", description: "Показать меню" },
+  ]);
 
   console.log("🚀 Бот запущен (polling, очищены старые апдейты)");
 })();
