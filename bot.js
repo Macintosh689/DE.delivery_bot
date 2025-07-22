@@ -217,7 +217,7 @@ bot.on("text", async (ctx) => {
   }
 
   // если ничто не активно
-  return ctx.reply("Выберите действие из меню", mainMenu);
+  return mainMenu;
 });
 
 bot.command("faq", (ctx) =>
