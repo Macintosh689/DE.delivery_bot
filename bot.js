@@ -287,14 +287,7 @@ bot.command("calc", (ctx) => {
 (async () => {
   await bot.telegram.deleteWebhook();
   await bot.launch({ dropPendingUpdates: true });
-  await bot.telegram.setMyCommands([
-    { command: "start", description: "Запустить бота" },
-    { command: "calc", description: "Начать расчёт" },
-    { command: "rate", description: "Узнать курс евро" },
-    { command: "terms", description: "Условия заказа" },
-    { command: "faq", description: "FAQ — частые вопросы" },
-    { command: "ask", description: "Задать вопрос менеджеру" },
-  ]);
+  await bot.telegram.setMyCommands([]);
 
   console.log("🚀 Бот запущен (polling, очищены старые апдейты)");
 })();
