@@ -261,7 +261,6 @@ bot.catch((err, ctx) => {
   await bot.telegram.setMyCommands([
     { command: "menu", description: "Показать меню" },
     { command: "hide", description: "Скрыть меню" },
-    { command: "faq", description: "FAQ" },
   ]);
   await bot.launch({ dropPendingUpdates: true });
   console.log("🚀 Бот запущен (polling + local session)");
