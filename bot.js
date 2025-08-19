@@ -20,6 +20,7 @@ const mainMenu = Markup.keyboard([
   ["▶️ Начать расчёт"],
   ["📈 Курс евро", "🧾 Условия заказа"],
   ["❓ FAQ", "💬 Задать вопрос"],
+  ["❌ Скрыть меню"],
 ]).resize();
 
 // === Получение курса евро ===
@@ -76,6 +77,22 @@ bot.command("menu", (ctx) => {
   return ctx.reply("Выберите действие из меню 👇", mainMenu);
 });
 
+// Скрыть меню кнопкой
+bot.hears("❌ Скрыть меню", (ctx) => {
+  return ctx.reply(
+    "Меню скрыто 👌 Напишите /menu, чтобы открыть снова.",
+    Markup.removeKeyboard()
+  );
+});
+
+// Скрыть меню командой
+bot.command("hide", (ctx) => {
+  return ctx.reply(
+    "Меню скрыто 👌 Напишите /menu, чтобы открыть снова.",
+    Markup.removeKeyboard()
+  );
+});
+
 // === FAQ ===
 const faqText = `
 ❓ *Часто задаваемые вопросы (FAQ)*
@@ -96,8 +113,7 @@ const faqText = `
 Обычно 3–5 недель. Мы сопровождаем заказ на каждом этапе.
 
 5. 💬 *Как можно заказать?*
-ctx.reply('сохрани ссылку нужного товара и пришли ее [менеджеру](https://t.me/@Kk_Fedor)', { parse_mode: 'Markdown' });
-
+Сохрани ссылку нужного товара и пришли её [менеджеру](https://t.me/Kk_Fedor).
 
 6. 🔁 *Можно ли вернуть товар?*
 Нет. Сервис — посредник. Возвраты и обмены невозможны. Проверяйте всё заранее.
@@ -127,7 +143,12 @@ bot.hears("🧾 Условия заказа", (ctx) => {
   );
 });
 
-bot.hears("❓ FAQ", (ctx) => ctx.replyWithMarkdown(faqText));
+bot.hears("❓ FAQ", (ctx) => {
+  ctx.reply(faqText, {
+    parse_mode: "Markdown",
+    disable_web_page_preview: true, // 🔥 убирает карточку ссылки
+  });
+});
 
 bot.hears("💬 Задать вопрос", (ctx) => {
   ctx.session.mode = "ask";
@@ -137,6 +158,25 @@ bot.hears("💬 Задать вопрос", (ctx) => {
 bot.hears("▶️ Начать расчёт", (ctx) => {
   ctx.session.mode = "calc";
   return ctx.reply("Введи сумму заказа в евро:");
+});
+
+// === Ответы менеджера ===
+bot.on("message", async (ctx, next) => {
+  const replyTo = ctx.message.reply_to_message;
+  if (
+    ctx.chat.id === ADMIN_ID &&
+    replyTo &&
+    pendingQuestions.has(replyTo.message_id)
+  ) {
+    const userId = pendingQuestions.get(replyTo.message_id);
+    await ctx.telegram.sendMessage(
+      userId,
+      `💬 Ответ менеджера:\n\n${ctx.message.text}`
+    );
+    pendingQuestions.delete(replyTo.message_id);
+    return ctx.reply("Ответ отправлен пользователю ✅");
+  }
+  return next();
 });
 
 // === Основной текстовый хендлер ===
@@ -179,25 +219,6 @@ bot.on("text", async (ctx) => {
   return ctx.reply("Выберите действие из меню 👇", mainMenu);
 });
 
-// === Ответы менеджера ===
-bot.on("message", async (ctx, next) => {
-  const replyTo = ctx.message.reply_to_message;
-  if (
-    ctx.chat.id === ADMIN_ID &&
-    replyTo &&
-    pendingQuestions.has(replyTo.message_id)
-  ) {
-    const userId = pendingQuestions.get(replyTo.message_id);
-    await ctx.telegram.sendMessage(
-      userId,
-      `💬 Ответ менеджера:\n\n${ctx.message.text}`
-    );
-    pendingQuestions.delete(replyTo.message_id);
-    return ctx.reply("Ответ отправлен пользователю ✅");
-  }
-  return next();
-});
-
 // === Команды ===
 bot.command("faq", (ctx) => ctx.replyWithMarkdown(faqText));
 bot.command("rate", async (ctx) => {
@@ -229,6 +250,7 @@ bot.command("calc", (ctx) => {
   await bot.telegram.deleteWebhook();
   await bot.telegram.setMyCommands([
     { command: "menu", description: "Показать меню" },
+    { command: "hide", description: "Скрыть меню" },
   ]);
   await bot.launch({ dropPendingUpdates: true });
   console.log("🚀 Бот запущен (polling + local session)");
