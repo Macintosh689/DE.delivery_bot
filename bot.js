@@ -12,7 +12,7 @@ bot.use(new LocalSession({ database: "session.json" }).middleware());
 const WELCOME_PHOTO =
   "https://i.pinimg.com/736x/36/22/37/362237c342b77a2b0c5edf8893f0e347.jpg";
 const COMMISSION = 1.3;
-const SESSION_TIMEOUT = 10 * 60 * 1000;
+const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 минут
 const pendingQuestions = new Map();
 
 // === Главное меню (клавиатура) ===
@@ -93,7 +93,7 @@ bot.hears("🔽 Скрыть меню", (ctx) => {
   );
 });
 
-// === FAQ (HTML вместо Markdown) ===
+// === FAQ (HTML, без превью) ===
 const faqHtml = `
 <b>❓ Часто задаваемые вопросы (FAQ)</b>
 
@@ -125,14 +125,20 @@ const faqHtml = `
 Актуальный курс евро ЦБ РФ на день оплаты.
 `.trim();
 
+// Ловим и кнопку "❓ FAQ", и ввод "FAQ" в любом регистре/с пробелами/с эмодзи
+bot.hears(/^(?:❓\s*)?faq$/i, (ctx) =>
+  ctx.reply(faqHtml, { parse_mode: "HTML", disable_web_page_preview: true })
+);
+// На всякий случай — точное совпадение текста кнопки
 bot.hears("❓ FAQ", (ctx) =>
   ctx.reply(faqHtml, { parse_mode: "HTML", disable_web_page_preview: true })
 );
+// Команда /faq
 bot.command("faq", (ctx) =>
   ctx.reply(faqHtml, { parse_mode: "HTML", disable_web_page_preview: true })
 );
 
-// === Обработка кнопок ===
+// === Кнопки ===
 bot.hears("📈 Курс евро", async (ctx) => {
   const rate = await getRate();
   return ctx.reply(`Текущий курс евро: *${rate.toFixed(2)}* ₽/€`, {
@@ -158,6 +164,25 @@ bot.hears("💬 Задать вопрос", (ctx) => {
 bot.hears("▶️ Начать расчёт", (ctx) => {
   ctx.session.mode = "calc";
   return ctx.reply("Введи сумму заказа в евро:");
+});
+
+// === Ответ менеджера пользователю (ставим ДО общего текстового хендлера) ===
+bot.on("message", async (ctx, next) => {
+  const replyTo = ctx.message?.reply_to_message;
+  if (
+    ctx.chat?.id === ADMIN_ID &&
+    replyTo &&
+    pendingQuestions.has(replyTo.message_id)
+  ) {
+    const userId = pendingQuestions.get(replyTo.message_id);
+    await ctx.telegram.sendMessage(
+      userId,
+      `💬 Ответ менеджера:\n\n${ctx.message.text}`
+    );
+    pendingQuestions.delete(replyTo.message_id);
+    return ctx.reply("Ответ отправлен пользователю ✅");
+  }
+  return next();
 });
 
 // === Основной текстовый хендлер ===
@@ -187,11 +212,11 @@ bot.on("text", async (ctx) => {
     const rate = await getRate();
     const total = Math.round(amount * rate * COMMISSION);
     await ctx.reply(
-      `📦 Сумма: ${amount} €\n💶 Курс: ${rate.toFixed(
-        2
-      )} ₽/€\n➡️ Итого: ${total.toLocaleString(
-        "ru-RU"
-      )} ₽\n\n✅ Доставка до Краснодара включена.\n⚠️ Возможна доплата 11€/кг при габаритных заказах.`,
+      `📦 Сумма: ${amount} €\n` +
+        `💶 Курс: ${rate.toFixed(2)} ₽/€\n` +
+        `➡️ Итого: ${total.toLocaleString("ru-RU")} ₽\n\n` +
+        `✅ Доставка до Краснодара включена.\n` +
+        `⚠️ Возможна доплата 11€/кг при габаритных заказах.`,
       mainMenu
     );
     return;
@@ -200,26 +225,7 @@ bot.on("text", async (ctx) => {
   return ctx.reply("Выберите действие из меню 👇", mainMenu);
 });
 
-// === Ответы менеджера ===
-bot.on("message", async (ctx, next) => {
-  const replyTo = ctx.message.reply_to_message;
-  if (
-    ctx.chat.id === ADMIN_ID &&
-    replyTo &&
-    pendingQuestions.has(replyTo.message_id)
-  ) {
-    const userId = pendingQuestions.get(replyTo.message_id);
-    await ctx.telegram.sendMessage(
-      userId,
-      `💬 Ответ менеджера:\n\n${ctx.message.text}`
-    );
-    pendingQuestions.delete(replyTo.message_id);
-    return ctx.reply("Ответ отправлен пользователю ✅");
-  }
-  return next();
-});
-
-// === Команды-дублёры ===
+// === Дубли команд ===
 bot.command("rate", async (ctx) => {
   const rate = await getRate();
   ctx.reply(`Текущий курс евро: *${rate.toFixed(2)}* ₽/€`, {
@@ -244,7 +250,7 @@ bot.command("calc", (ctx) => {
   ctx.reply("Введи сумму заказа в евро:");
 });
 
-// === Глобальный ловец ошибок (чтобы видеть 400/429 и т.п.) ===
+// === Глобальный ловец ошибок (увидим 400/429 и т.п.) ===
 bot.catch((err, ctx) => {
   console.error("Unhandled error while processing", ctx.update, "\n", err);
 });
@@ -261,6 +267,6 @@ bot.catch((err, ctx) => {
   console.log("🚀 Бот запущен (polling + local session)");
 })();
 
-// === Ошибки процессa ===
+// === Ошибки процесса ===
 process.on("unhandledRejection", console.error);
 process.on("uncaughtException", console.error);
